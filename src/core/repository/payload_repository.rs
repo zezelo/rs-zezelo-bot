@@ -1,0 +1,3 @@
+struct PayloadRepository;
+
+impl PayloadRepository {}

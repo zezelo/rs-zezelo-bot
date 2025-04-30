@@ -1,4 +1,4 @@
-use crate::config::database::DATABASE_INSTANCE;
+use crate::infrastructure::database::database::DATABASE_INSTANCE;
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
