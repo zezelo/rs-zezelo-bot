@@ -45,18 +45,31 @@ pub async fn evaluate(
     ctx: &Context,
     interaction: &CommandInteraction,
 ) -> Result<(), Box<dyn Error>> {
-    interaction
-        .create_response(
-            &ctx.http,
-            CreateInteractionResponse::Modal(
-                CreateModal::new(
-                    DiscordCustomId::CreateEvaluateModal.as_str(),
-                    "Avaliação de jogador",
-                )
-                .components(create_action_rows()),
-            ),
-        )
-        .await?;
+    match interaction.data.options.get(0) {
+        Some(data_option) => {
+            if let CommandDataOptionValue::User(user_id) = &data_option.value {
+                interaction
+                    .create_response(
+                        &ctx.http,
+                        CreateInteractionResponse::Modal(
+                            CreateModal::new(
+                                format!(
+                                    "{}|{}",
+                                    DiscordCustomId::Evaluate.as_str(),
+                                    user_id.to_string()
+                                ),
+                                "Avaliação de jogador",
+                            )
+                            .components(create_action_rows()),
+                        ),
+                    )
+                    .await?;
+            }
+        }
+        _ => {
+            println!("Param option not found");
+        }
+    }
 
     Ok(())
 }
@@ -64,15 +77,37 @@ pub async fn evaluate(
 pub async fn publish_at_evaluation_channel(
     ctx: &Context,
     interaction: &ModalInteraction,
+    custom_id: &str,
 ) -> Result<(), Box<dyn Error>> {
     let env = Environment::new(EnvType::EvaluationChannel)?;
 
     let channel_id = ChannelId::new(env.value.parse::<u64>()?);
 
-    let evaluation_text = format!(
-        "**Avaliação de <@{}> para ** \n\n Text Here!",
-        interaction.user.id
+    let mut evaluation_text = format!(
+        "**Avaliação de <@{}> para <@{}>**\n",
+        interaction.user.id, custom_id
     );
+
+    for action_row in interaction.data.components.iter() {
+        for component in &action_row.components {
+            if let ActionRowComponent::InputText(input_text) = component {
+                if let Some(value) = &input_text.value {
+                    if let Some(custom_id) = DiscordCustomId::new(input_text.custom_id.as_str()) {
+                        let question_title = match custom_id {
+                            DiscordCustomId::EvaluateCommunication => "Comunicação do jogador",
+                            DiscordCustomId::EvaluateTeamWork => "Trabalho em equipe do jogador",
+                            DiscordCustomId::EvaluateBehaviour => "Comportamento do jogador",
+                            DiscordCustomId::EvaluateCommentary => "Utilitária do jogador",
+                            _ => "Comentário",
+                        };
+
+                        evaluation_text
+                            .push_str(format!("\n**{}:**\n{}", question_title, value).as_str())
+                    }
+                }
+            }
+        }
+    }
 
     let embed = CreateEmbed::new()
         .author(CreateEmbedAuthor::new("Zezelo"))
@@ -84,6 +119,17 @@ pub async fn publish_at_evaluation_channel(
         .send_message(&ctx.http, message)
         .await
         .expect("Failed to reply message");
+
+    interaction
+        .create_response(
+            &ctx.http,
+            CreateInteractionResponse::Message(
+                CreateInteractionResponseMessage::new()
+                    .content("Sua avaliação foi realizada, obrigado!")
+                    .ephemeral(true),
+            ),
+        )
+        .await?;
 
     Ok(())
 }

@@ -52,14 +52,21 @@ impl EventHandler for Handler {
                     evaluate(&ctx, &command).await.expect("Failed to evaluate")
                 }
             }
-            Interaction::Modal(modal) => {
-                if modal.data.custom_id == DiscordCustomId::CreateEvaluateModal.as_str() {
-                    evaluate::publish_at_evaluation_channel(&ctx, &modal)
-                        .await
-                        .expect("Failed to send evaluation command");
+            Interaction::Modal(modal) => match modal.data.custom_id.split_once("|") {
+                Some((kind, id)) => {
+                    if kind == DiscordCustomId::Evaluate.as_str() {
+                        evaluate::publish_at_evaluation_channel(&ctx, &modal, id)
+                            .await
+                            .expect("Failed to send evaluation command");
+                    }
                 }
+                _ => {
+                    println!("Comando não identificado!")
+                }
+            },
+            _ => {
+                println!("Tipo de comando não delimitado");
             }
-            _ => {}
         }
     }
 }
