@@ -1,6 +1,10 @@
+use crate::core::entities::evaluation::CreateUserEvaluation;
 use crate::core::enums::discord::DiscordCustomId;
+use crate::core::repository::evaluate_repository::EvaluateRepository;
+use crate::core::structs::database::DatabaseInstance;
 use crate::core::structs::environment::{EnvType, Environment};
 use serenity::all::*;
+use std::default::Default;
 use std::error::Error;
 
 fn create_action_rows() -> Vec<CreateActionRow> {
@@ -88,17 +92,39 @@ pub async fn publish_at_evaluation_channel(
         interaction.user.id, custom_id
     );
 
+    let instance = DatabaseInstance::new().db;
+
+    let mut user_evaluation = CreateUserEvaluation::default();
+
+    user_evaluation.evaluator_id = interaction.user.id.to_string();
+    user_evaluation.player_id = custom_id.to_string();
+
     for action_row in interaction.data.components.iter() {
         for component in &action_row.components {
             if let ActionRowComponent::InputText(input_text) = component {
                 if let Some(value) = &input_text.value {
                     if let Some(custom_id) = DiscordCustomId::new(input_text.custom_id.as_str()) {
                         let question_title = match custom_id {
-                            DiscordCustomId::EvaluateCommunication => "Comunicação do jogador",
-                            DiscordCustomId::EvaluateTeamWork => "Trabalho em equipe do jogador",
-                            DiscordCustomId::EvaluateBehaviour => "Comportamento do jogador",
-                            DiscordCustomId::EvaluateCommentary => "Utilitária do jogador",
-                            _ => "Comentário",
+                            DiscordCustomId::EvaluateCommunication => {
+                                user_evaluation.communication = value.to_string();
+                                "Comunicação do jogador"
+                            }
+                            DiscordCustomId::EvaluateTeamWork => {
+                                user_evaluation.teamplay = value.to_string();
+                                "Trabalho em equipe do jogador"
+                            }
+                            DiscordCustomId::EvaluateBehaviour => {
+                                user_evaluation.behavior = value.to_string();
+                                "Comportamento do jogador"
+                            }
+                            DiscordCustomId::EvaluateGrenade => {
+                                user_evaluation.utility_usage = value.to_string();
+                                "Uso de Utilitárias"
+                            }
+                            _ => {
+                                user_evaluation.comment = Some(value.to_string());
+                                "Comentário"
+                            }
                         };
 
                         evaluation_text
@@ -108,6 +134,10 @@ pub async fn publish_at_evaluation_channel(
             }
         }
     }
+
+    EvaluateRepository::create(instance.as_ref(), user_evaluation)
+        .await
+        .expect("Failed to create evaluation");
 
     let embed = CreateEmbed::new()
         .author(CreateEmbedAuthor::new("Zezelo"))

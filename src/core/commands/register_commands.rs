@@ -14,13 +14,23 @@ pub async fn register_commands(ctx: &Context, ready: &Ready) -> Result<(), Box<d
 
 fn get_commands() -> Vec<CreateCommand> {
     vec![
-        CreateCommand::new("evaluate")
-            .description("Evaluate other player")
+        CreateCommand::new("avaliar")
+            .description("Avaliar um jogador")
             .add_option(
                 CreateCommandOption::new(
                     CommandOptionType::User,
                     "player",
                     "Select player that will receive evaluation",
+                )
+                .required(true),
+            ),
+        CreateCommand::new("historico")
+            .description("Acessar o histórico")
+            .add_option(
+                CreateCommandOption::new(
+                    CommandOptionType::User,
+                    "player",
+                    "O player no qual deseja ver o histórico",
                 )
                 .required(true),
             ),

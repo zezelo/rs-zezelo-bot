@@ -1,6 +1,8 @@
 use crate::core::commands::evaluate::evaluate;
+use crate::core::commands::history::get_evaluation_history;
 use crate::core::commands::*;
 use crate::core::enums::discord::{DiscordCommand, DiscordCustomId};
+use crate::core::handlers::user_handler::UserHandler;
 use serenity::all::{EventHandler, Interaction, Ready};
 use serenity::async_trait;
 use serenity::prelude::*;
@@ -46,15 +48,30 @@ impl EventHandler for Handler {
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
+        UserHandler::preregister(&interaction)
+            .await
+            .expect("Failed to verify user");
+
         match interaction {
             Interaction::Command(command) => {
                 if command.data.name == DiscordCommand::Evaluate.as_str() {
                     evaluate(&ctx, &command).await.expect("Failed to evaluate")
                 }
+                if command.data.name == DiscordCommand::History.as_str() {
+                    get_evaluation_history(&ctx, &command)
+                        .await
+                        .expect("Failed to get history")
+                }
             }
             Interaction::Modal(modal) => match modal.data.custom_id.split_once("|") {
                 Some((kind, id)) => {
                     if kind == DiscordCustomId::Evaluate.as_str() {
+                        let parsed_id = id.parse::<u64>().expect("Failed to parse id");
+
+                        UserHandler::preregister_target(&ctx, parsed_id)
+                            .await
+                            .expect("Failed to verify user");
+
                         evaluate::publish_at_evaluation_channel(&ctx, &modal, id)
                             .await
                             .expect("Failed to send evaluation command");

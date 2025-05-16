@@ -4,11 +4,11 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct DatabaseInstance<'a> {
-    db: &'a Arc<DatabaseConnection>,
+    pub db: &'a Arc<DatabaseConnection>,
 }
 
 impl<'a> DatabaseInstance<'a> {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             db: &DATABASE_INSTANCE
                 .get()

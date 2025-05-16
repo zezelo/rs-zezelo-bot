@@ -1,2 +1,2 @@
 pub mod environment;
-mod database;
+pub mod database;

@@ -12,7 +12,7 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(Discord::Table)
                     .if_not_exists()
-                    .col(string(Discord::Id).primary_key().unique_key())
+                    .col(string(Discord::Id).primary_key().unique_key().not_null())
                     .col(string(Discord::Name))
                     .col(ColumnDef::new(Discord::GlobalName).string())
                     .col(ColumnDef::new(Discord::Email).string())
@@ -26,168 +26,40 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(User::Table)
                     .if_not_exists()
-                    .col(string(User::Id).primary_key().unique_key())
+                    .col(
+                        ColumnDef::new(User::Id)
+                            .string()
+                            .primary_key()
+                            .unique_key()
+                            .not_null(),
+                    )
+                    .col(string(User::Name))
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-discord-id")
                             .from(User::Table, User::Id)
                             .to(Discord::Table, Discord::Id),
                     )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(User::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(User::Id)
+                            .string()
+                            .primary_key()
+                            .unique_key()
+                            .not_null(),
+                    )
                     .col(string(User::Name))
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
-            .create_table(
-                Table::create()
-                    .table(Team::Table)
-                    .if_not_exists()
-                    .col(pk_auto(Team::Id))
-                    .col(string(Team::Name))
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
-            .create_table(
-                Table::create()
-                    .table(UserTeam::Table)
-                    .if_not_exists()
-                    .col(string(UserTeam::UserId))
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-user-team-user-id")
-                            .from(UserTeam::Table, UserTeam::UserId)
-                            .to(User::Table, User::Id),
-                    )
-                    .col(integer(UserTeam::TeamId))
-                    .foreign_key(
-                        ForeignKey::create()
-                            .name("fk-user-team-team-id")
-                            .from(UserTeam::Table, UserTeam::TeamId)
-                            .to(Team::Table, Team::Id),
-                    )
-                    .primary_key(Index::create().col(UserTeam::TeamId).col(UserTeam::UserId))
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
-            .create_table(
-                Table::create()
-                    .table(Game::Table)
-                    .if_not_exists()
-                    .col(pk_auto(Game::Id))
-                    .col(string(Game::Name))
-                    .col(ColumnDef::new(Game::GuildId).string().not_null())
-                    .foreign_key(
-                        ForeignKey::create()
-                            .name("fk-game-guild-id")
-                            .from(Game::Table, Game::GuildId)
-                            .to(Guild::Table, Guild::Id),
-                    )
-                    .col(ColumnDef::new(Game::HomeTeamId).integer())
-                    .foreign_key(
-                        ForeignKey::create()
-                            .name("fk-game-home-team-id")
-                            .from(Game::Table, Game::HomeTeamId)
-                            .to(Team::Table, Team::Id),
-                    )
-                    .col(ColumnDef::new(Game::AwayTeamId).integer())
-                    .foreign_key(
-                        ForeignKey::create()
-                            .name("fk-game-away-team-id")
-                            .from(Game::Table, Game::AwayTeamId)
-                            .to(Team::Table, Team::Id),
-                    )
-                    .col(date_time(Game::Date))
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
-            .create_table(
-                Table::create()
-                    .table(Guild::Table)
-                    .if_not_exists()
-                    .col(string(Guild::Id).primary_key().unique_key())
-                    .col(string(Guild::Name))
-                    .col(ColumnDef::new(Guild::Description).string())
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
-            .create_table(
-                Table::create()
-                    .table(GuildUser::Table)
-                    .if_not_exists()
-                    .col(string(GuildUser::GuildId))
-                    .foreign_key(
-                        ForeignKey::create()
-                            .name("fk-guild-user-guild-id")
-                            .from(GuildUser::Table, GuildUser::GuildId)
-                            .to(Guild::Table, Guild::Id),
-                    )
-                    .col(string(GuildUser::UserId))
-                    .foreign_key(
-                        ForeignKey::create()
-                            .name("fk-guild-user-user-id")
-                            .from(GuildUser::Table, GuildUser::UserId)
-                            .to(User::Table, User::Id),
-                    )
-                    .col(date_time(GuildUser::CreatedAt))
-                    .primary_key(
-                        Index::create()
-                            .col(GuildUser::GuildId)
-                            .col(GuildUser::UserId),
-                    )
-                    .to_owned(),
-            )
-            .await?;
-
-        // Queue: tabela para filas
-        manager
-            .create_table(
-                Table::create()
-                    .table(Queue::Table)
-                    .if_not_exists()
-                    .col(string(Queue::Id).unique_key().primary_key())
-                    .foreign_key(
-                        ForeignKey::create()
-                            .name("fk-queue-guild-id")
-                            .from(Queue::Table, Queue::Id)
-                            .to(Guild::Table, Guild::Id),
-                    )
-                    .col(integer(Queue::Length))
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
-            .create_table(
-                Table::create()
-                    .table(QueueUser::Table)
-                    .if_not_exists()
-                    .col(string(QueueUser::QueueId))
-                    .foreign_key(
-                        ForeignKey::create()
-                            .name("fk-queue-user-queue-id")
-                            .from(QueueUser::Table, QueueUser::QueueId)
-                            .to(Queue::Table, Queue::Id),
-                    )
-                    .col(string(QueueUser::UserId))
-                    .foreign_key(
-                        ForeignKey::create()
-                            .name("fk-queue-user-user-id")
-                            .from(QueueUser::Table, QueueUser::UserId)
-                            .to(User::Table, User::Id),
-                    )
-                    .primary_key(
-                        Index::create()
-                            .col(QueueUser::QueueId)
-                            .col(QueueUser::UserId),
+                            .from(User::Table, User::Id)
+                            .to(Discord::Table, Discord::Id),
                     )
                     .to_owned(),
             )
@@ -196,10 +68,64 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(Payload::Table)
+                    .table(PlayerEvaluation::Table)
                     .if_not_exists()
-                    .col(string(Payload::Id).unique_key().primary_key())
-                    .col(string(Payload::Payload))
+                    .col(
+                        ColumnDef::new(PlayerEvaluation::Id)
+                            .integer()
+                            .primary_key()
+                            .auto_increment()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(PlayerEvaluation::EvaluatorId)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(PlayerEvaluation::PlayerId)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(PlayerEvaluation::Communication)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(PlayerEvaluation::Teamplay)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(PlayerEvaluation::UtilityUsage)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(PlayerEvaluation::Behavior)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(ColumnDef::new(PlayerEvaluation::Comment).text().null())
+                    .col(
+                        ColumnDef::new(PlayerEvaluation::CreatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null()
+                            .default(Expr::current_timestamp()),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_evaluator_id")
+                            .from(PlayerEvaluation::Table, PlayerEvaluation::EvaluatorId)
+                            .to(Discord::Table, Discord::Id),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_player_id")
+                            .from(PlayerEvaluation::Table, PlayerEvaluation::PlayerId)
+                            .to(Discord::Table, Discord::Id),
+                    )
                     .to_owned(),
             )
             .await?;
@@ -209,18 +135,6 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(Game::Table).to_owned())
-            .await?;
-
-        manager
-            .drop_table(Table::drop().table(UserTeam::Table).to_owned())
-            .await?;
-
-        manager
-            .drop_table(Table::drop().table(Team::Table).to_owned())
-            .await?;
-
-        manager
             .drop_table(Table::drop().table(User::Table).to_owned())
             .await?;
 
@@ -229,19 +143,7 @@ impl MigrationTrait for Migration {
             .await?;
 
         manager
-            .drop_table(Table::drop().table(QueueUser::Table).to_owned())
-            .await?;
-
-        manager
-            .drop_table(Table::drop().table(Queue::Table).to_owned())
-            .await?;
-
-        manager
-            .drop_table(Table::drop().table(GuildUser::Table).to_owned())
-            .await?;
-
-        manager
-            .drop_table(Table::drop().table(Guild::Table).to_owned())
+            .drop_table(Table::drop().table(PlayerEvaluation::Table).to_owned())
             .await?;
 
         Ok(())
@@ -255,28 +157,6 @@ enum User {
     Name,
 }
 #[derive(DeriveIden)]
-enum Game {
-    Id,
-    Table,
-    Date,
-    Name,
-    GuildId,
-    HomeTeamId,
-    AwayTeamId,
-}
-#[derive(DeriveIden)]
-enum Team {
-    Table,
-    Id,
-    Name,
-}
-#[derive(DeriveIden)]
-enum UserTeam {
-    Table,
-    UserId,
-    TeamId,
-}
-#[derive(DeriveIden)]
 enum Discord {
     Table,
     Id,
@@ -285,6 +165,21 @@ enum Discord {
     Email,
     Discriminator,
 }
+
+#[derive(DeriveIden)]
+enum PlayerEvaluation {
+    Table,
+    Id,
+    EvaluatorId,
+    PlayerId,
+    Communication,
+    Teamplay,
+    UtilityUsage,
+    Behavior,
+    Comment,
+    CreatedAt,
+}
+
 #[derive(DeriveIden)]
 enum Guild {
     Table,
@@ -298,25 +193,4 @@ enum GuildUser {
     GuildId,
     UserId,
     CreatedAt,
-}
-#[derive(DeriveIden)]
-enum Queue {
-    Table,
-    DiscordId,
-    Id,
-    Length,
-}
-
-#[derive(DeriveIden)]
-enum QueueUser {
-    Table,
-    QueueId,
-    UserId,
-}
-
-#[derive(DeriveIden)]
-enum Payload {
-    Table,
-    Id,
-    Payload,
 }
