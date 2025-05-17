@@ -39,6 +39,7 @@ impl MigrationTrait for Migration {
                             .from(User::Table, User::Id)
                             .to(Discord::Table, Discord::Id),
                     )
+                    .col(boolean(User::Administrator))
                     .to_owned(),
             )
             .await?;
@@ -155,6 +156,7 @@ enum User {
     Table,
     Id,
     Name,
+    Administrator,
 }
 #[derive(DeriveIden)]
 enum Discord {

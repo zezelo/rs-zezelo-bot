@@ -46,6 +46,7 @@ impl UserRepository {
         let user = entities::user::ActiveModel {
             id: ActiveValue::Set(id),
             name: ActiveValue::Set(name),
+            administrator: ActiveValue::Set(false),
         }
         .insert(db)
         .await?;

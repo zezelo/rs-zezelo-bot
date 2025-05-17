@@ -33,6 +33,14 @@ fn get_commands() -> Vec<CreateCommand> {
                     "O player no qual deseja ver o histórico",
                 )
                 .required(true),
+            )
+            .add_option(
+                CreateCommandOption::new(
+                    CommandOptionType::Integer,
+                    "page",
+                    "Página que deseja ver",
+                )
+                .required(true),
             ),
     ]
 }

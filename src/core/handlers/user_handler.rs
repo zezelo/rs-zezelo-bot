@@ -1,6 +1,6 @@
 use crate::core::repository::user_repository::UserRepository;
 use crate::core::structs::database::DatabaseInstance;
-use sea_orm::DbErr;
+use sea_orm::{DbErr, TransactionTrait};
 use serenity::all::{Interaction, User, UserId};
 use serenity::prelude::Context;
 
@@ -8,6 +8,17 @@ use serenity::prelude::Context;
 pub struct UserHandler {}
 
 impl UserHandler {
+    pub async fn only_administrator(user_id: String) -> Result<bool, DbErr> {
+        let instance = DatabaseInstance::new().db;
+
+        let discord = UserRepository::get_by_discord_id(instance.as_ref(), user_id).await?;
+
+        if let Some(discord_w_user) = discord {
+            return Ok(discord_w_user.user.administrator);
+        }
+
+        Err(DbErr::RecordNotFound("User not found".to_string()))
+    }
     pub async fn create_user_if_not_exists(user: Option<&User>) -> Result<(), DbErr> {
         let instance = DatabaseInstance::new().db;
 
@@ -16,8 +27,10 @@ impl UserHandler {
                 UserRepository::get_by_discord_id(instance.as_ref(), user.id.to_string()).await?;
 
             if let None = discord {
+                let txn = instance.as_ref().begin().await?;
+
                 UserRepository::create(
-                    instance.as_ref(),
+                    &txn,
                     user.id.to_string(),
                     user.name.clone(),
                     user.discriminator.map(|d| d.to_string()),
@@ -25,6 +38,8 @@ impl UserHandler {
                     user.global_name.clone(),
                 )
                 .await?;
+
+                txn.commit().await?;
             }
         }
 

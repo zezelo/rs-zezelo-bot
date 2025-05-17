@@ -3,7 +3,9 @@ use crate::core::commands::history::get_evaluation_history;
 use crate::core::commands::*;
 use crate::core::enums::discord::{DiscordCommand, DiscordCustomId};
 use crate::core::handlers::user_handler::UserHandler;
-use serenity::all::{EventHandler, Interaction, Ready};
+use serenity::all::{
+    CreateInteractionResponse, CreateInteractionResponseMessage, EventHandler, Interaction, Ready,
+};
 use serenity::async_trait;
 use serenity::prelude::*;
 use std::any::Any;
@@ -58,6 +60,25 @@ impl EventHandler for Handler {
                     evaluate(&ctx, &command).await.expect("Failed to evaluate")
                 }
                 if command.data.name == DiscordCommand::History.as_str() {
+                    let is_administrator =
+                        UserHandler::only_administrator(command.user.id.to_string())
+                            .await
+                            .expect("Failed to check if is administrator");
+
+                    if is_administrator == false {
+                        return command
+                            .create_response(
+                                &ctx.http,
+                                CreateInteractionResponse::Message(
+                                    CreateInteractionResponseMessage::new()
+                                        .content("Apenas administradores podem usar esse comando!")
+                                        .ephemeral(true),
+                                ),
+                            )
+                            .await
+                            .expect("Failed to create interaction response");
+                    }
+
                     get_evaluation_history(&ctx, &command)
                         .await
                         .expect("Failed to get history")
